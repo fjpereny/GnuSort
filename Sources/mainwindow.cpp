@@ -20,6 +20,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    ui->progressBar->setVisible(false);
+    total_files = 0;
 }
 
 MainWindow::~MainWindow()
@@ -35,15 +37,16 @@ void MainWindow::on_actionExit_triggered()
 void MainWindow::on_scanButton_clicked()
 {
     ui->extensionsListWidget->clear();
-    ui->consolePlainTextEdit->clear();
     std::string root_path = ui->sourceLineEdit->text().toStdString();
 
     int file_count = 0;
+    total_files = 0;
     std::vector<std::string> extensions;
     try
     {
         for(std::filesystem::directory_entry entry : std::filesystem::recursive_directory_iterator(root_path))
         {   file_count++;
+            total_files++;
             std::string string_file_count = "Total File Count: " + std::to_string(file_count);
             ui->totalFilesLabel->setText(QString::fromStdString(string_file_count));
 
@@ -62,18 +65,21 @@ void MainWindow::on_scanButton_clicked()
             new_item->setText(QString::fromStdString(s));
             ui->extensionsListWidget->addItem(new_item);
         }
-        ui->sortButton->setEnabled(true);
+        ui->selectButton->setEnabled(true);
     }
     catch (std::filesystem::filesystem_error &e)
     {
-        ui->consolePlainTextEdit->appendPlainText(QString::fromStdString(e.code().message()));
+        return;
     }
 
 }
 
 void MainWindow::on_sortButton_clicked()
 {
-    ui->consolePlainTextEdit->clear();
+    ui->progressBar->show();
+    ui->progressBar->setValue(0);
+    ui->progressBar->setMinimum(0);
+    ui->progressBar->setMaximum(total_files);
 
 #ifdef linux
     if(!std::filesystem::exists("logs/"))
@@ -124,25 +130,39 @@ void MainWindow::on_sortButton_clicked()
             try
             {
                 std::filesystem::copy_file(source_file, destination_file);
-                //std::cout << "Successful copy: " << destination_file << std::endl;
                 std::string line = "Successful copy: " + destination_file;
-                ui->consolePlainTextEdit->appendPlainText(QString::fromStdString(line));
                 log_file << line << std::endl;
                 file_count++;
             }
             catch (std::filesystem::filesystem_error &e)
             {
                 std::string line = e.code().message() + e.what();
-                ui->consolePlainTextEdit->appendPlainText(QString::fromStdString(line));
                 log_file << line << std::endl;
                 failed_count++;
             }
 
         }
+
         std::string string_file_count = "Total Files Copied: " + std::to_string(file_count);
         ui->totalFilesLabel->setText(QString::fromStdString(string_file_count));
         std::string string_failed_count = "Total Files Failed: " + std::to_string(failed_count);
         ui->failedCountLabel->setText(QString::fromStdString(string_failed_count));
+
+        int remaining_files = total_files - file_count - failed_count;
+        std::string remaining_count = "Remaining Files: " + std::to_string(remaining_files);
+        ui->remainingFilesLabel->setText(QString::fromStdString(remaining_count));
+
+        int progress;
+        try
+        {
+            progress = (file_count + failed_count);
+        }
+        catch (std::overflow_error &e)
+        {
+                  return;
+        }
+        ui->progressBar->setValue(progress);
+        QCoreApplication::processEvents();
     }
     log_file.close();
 }
@@ -194,3 +214,34 @@ void MainWindow::on_destinationButton_clicked()
 #endif
     ui->destinationLineEdit->setText(path);
 }
+
+void MainWindow::on_selectButton_clicked()
+{
+    std::string root_path = ui->sourceLineEdit->text().toStdString();
+
+    total_files = 0;
+    std::vector<std::string> selected_extensions;
+    for(QListWidgetItem *item : ui->extensionsListWidget->selectedItems())
+    {
+                selected_extensions.push_back(item->text().toStdString());
+    }
+
+    try
+    {
+        for(std::filesystem::directory_entry entry : std::filesystem::recursive_directory_iterator(root_path))
+        {
+            if(std::find(selected_extensions.begin(), selected_extensions.end(), entry.path().extension()) != selected_extensions.end())
+                {
+                    total_files++;
+                }
+            std::string string_file_count = "Total File Count: " + std::to_string(total_files);
+            ui->totalFilesLabel->setText(QString::fromStdString(string_file_count));
+        }
+        ui->sortButton->setEnabled(true);
+    }
+    catch (std::filesystem::filesystem_error &e)
+    {
+        return;
+    }
+}
+

@@ -26,8 +26,12 @@ private slots:
 
     void on_destinationButton_clicked();
 
+    void on_selectButton_clicked();
+
 private:
     Ui::MainWindow *ui;
+
+    int total_files;
 
 };
 
