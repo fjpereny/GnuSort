@@ -28,6 +28,8 @@ private slots:
 
     void on_selectButton_clicked();
 
+    void on_actionAbout_GnuSort_triggered();
+
 private:
     Ui::MainWindow *ui;
 

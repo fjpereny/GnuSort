@@ -1,4 +1,5 @@
 #include "Headers/mainwindow.h"
+#include "Headers/aboutdialog.h"
 #include "ui_mainwindow.h"
 #include <filesystem>
 #include <string>
@@ -36,7 +37,12 @@ void MainWindow::on_actionExit_triggered()
 
 void MainWindow::on_scanButton_clicked()
 {
+    ui->progressBar->setVisible(false);
     ui->extensionsListWidget->clear();
+    ui->copiedFilesLabel->setText("Copied Files: ");
+    ui->failedCountLabel->setText("Copy Failures: ");
+    ui->remainingFilesLabel->setText("Remaining Files: ");
+
     std::string root_path = ui->sourceLineEdit->text().toStdString();
 
     int file_count = 0;
@@ -80,22 +86,42 @@ void MainWindow::on_sortButton_clicked()
     ui->progressBar->setValue(0);
     ui->progressBar->setMinimum(0);
     ui->progressBar->setMaximum(total_files);
+    ui->copiedFilesLabel->setText("Copied Files: ");
+    ui->failedCountLabel->setText("Copy Failures: ");
 
-#ifdef linux
-    if(!std::filesystem::exists("logs/"))
-    {
-        std::filesystem::create_directory("logs");
-    }
-#endif
 
-#ifdef _WIN32
-    if(!std::filesystem::exists("logs\"))
+    if (ui->extensionFolderCheckbox->isChecked())
     {
-        std::filesystem::create_directory("logs\");
+        std::string path = ui->destinationLineEdit->text().toStdString();
+        for (QListWidgetItem *extension : ui->extensionsListWidget->selectedItems())
+        {
+            std::string folder_name = extension->text().toStdString().erase(0, 1);
+            std::string full_folder_path = path + folder_name;
+            if (!std::filesystem::exists(full_folder_path))
+            {
+                std::filesystem::create_directory(full_folder_path);
+            }
+        }
     }
-#endif
+
 
     std::ofstream log_file;
+    if (ui->logCheckBox->isChecked())
+    {
+    #ifdef linux
+        if(!std::filesystem::exists("logs/"))
+        {
+            std::filesystem::create_directory("logs");
+        }
+    #endif
+
+    #ifdef _WIN32
+        if(!std::filesystem::exists("logs\"))
+        {
+            std::filesystem::create_directory("logs\");
+        }
+    #endif
+
     std::time_t t = std::time(nullptr);
     std::string cur_time = std::asctime(std::localtime(&t));
     std::string log_file_name = cur_time + "log.txt";
@@ -106,7 +132,8 @@ void MainWindow::on_sortButton_clicked()
 
 #ifdef _WIN32
     log_file.open("logs\" + log_file_name);
-#endif
+#endif             
+    }
 
     std::string root_path = ui->sourceLineEdit->text().toStdString();
 
@@ -125,26 +152,38 @@ void MainWindow::on_sortButton_clicked()
         {
             std::string source_file = entry.path();
             std::string destination_file = ui->destinationLineEdit->text().toStdString();
+            if (ui->extensionFolderCheckbox->isChecked())
+            {
+            destination_file += file_ext.erase(0, 1);
+            #ifdef linux
+            destination_file += "/";
+            #endif
+            #ifdef _WIN32
+            destination_file += "\";
+            #endif
+            }
             destination_file += entry.path().filename();
 
             try
             {
                 std::filesystem::copy_file(source_file, destination_file);
                 std::string line = "Successful copy: " + destination_file;
-                log_file << line << std::endl;
+                if (ui->logCheckBox->isChecked())
+                  log_file << line << std::endl;
                 file_count++;
             }
             catch (std::filesystem::filesystem_error &e)
             {
                 std::string line = e.code().message() + e.what();
-                log_file << line << std::endl;
+                if (ui->logCheckBox->isCheckable())
+                    log_file << line << std::endl;
                 failed_count++;
             }
 
         }
 
         std::string string_file_count = "Total Files Copied: " + std::to_string(file_count);
-        ui->totalFilesLabel->setText(QString::fromStdString(string_file_count));
+        ui->copiedFilesLabel->setText(QString::fromStdString(string_file_count));
         std::string string_failed_count = "Total Files Failed: " + std::to_string(failed_count);
         ui->failedCountLabel->setText(QString::fromStdString(string_failed_count));
 
@@ -164,7 +203,9 @@ void MainWindow::on_sortButton_clicked()
         ui->progressBar->setValue(progress);
         QCoreApplication::processEvents();
     }
-    log_file.close();
+
+    if (ui->logCheckBox->isChecked())
+        log_file.close();
 }
 
 void MainWindow::on_sourceButton_clicked()
@@ -183,7 +224,8 @@ void MainWindow::on_sourceButton_clicked()
     QString path = dialog.getExistingDirectory();
 
 #ifdef linux
-    path.append("/");
+    if (path != "/")
+        path.append("/");
 #endif
 
 #ifdef _WIN32
@@ -206,7 +248,8 @@ void MainWindow::on_destinationButton_clicked()
 
     QString path = dialog.getExistingDirectory();
 #ifdef linux
-    path.append("/");
+    if (path != "/")
+        path.append("/");
 #endif
 
 #ifdef _WIN32
@@ -217,6 +260,10 @@ void MainWindow::on_destinationButton_clicked()
 
 void MainWindow::on_selectButton_clicked()
 {
+    ui->copiedFilesLabel->setText("Copied Files: ");
+    ui->failedCountLabel->setText("Copy Failures: ");
+    ui->remainingFilesLabel->setText("Remaining Files: ");
+
     std::string root_path = ui->sourceLineEdit->text().toStdString();
 
     total_files = 0;
@@ -243,5 +290,12 @@ void MainWindow::on_selectButton_clicked()
     {
         return;
     }
+}
+
+
+void MainWindow::on_actionAbout_GnuSort_triggered()
+{
+    AboutDialog *about = new AboutDialog();
+    about->show();
 }
 

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>942</width>
-    <height>458</height>
+    <height>427</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -123,7 +123,40 @@
           </layout>
          </item>
          <item>
+          <widget class="QCheckBox" name="logCheckBox">
+           <property name="text">
+            <string>Create Log File</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="extensionFolderCheckbox">
+           <property name="text">
+            <string>Create Extension Folders</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <layout class="QVBoxLayout" name="verticalLayout">
+           <item>
+            <spacer name="verticalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
            <item>
             <widget class="QLabel" name="totalFilesLabel">
              <property name="minimumSize">
@@ -215,7 +248,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Sort &amp; Copy FIles</string>
+                <string>Copy FIles</string>
                </property>
               </widget>
              </item>
