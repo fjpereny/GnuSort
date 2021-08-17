@@ -51,8 +51,12 @@ void MainWindow::on_scanButton_clicked()
     try
     {
         for(std::filesystem::directory_entry entry : std::filesystem::recursive_directory_iterator(root_path))
-        {   file_count++;
-            total_files++;
+        {
+            if (!entry.is_directory())
+            {
+                file_count++;
+                total_files++;
+            }
             std::string string_file_count = "Total File Count: " + std::to_string(file_count);
             ui->totalFilesLabel->setText(QString::fromStdString(string_file_count));
 
@@ -152,35 +156,41 @@ void MainWindow::on_sortButton_clicked()
         {
             std::string source_file = entry.path();
             std::string destination_file = ui->destinationLineEdit->text().toStdString();
-            if (ui->extensionFolderCheckbox->isChecked())
-            {
-            destination_file += file_ext.erase(0, 1);
-            #ifdef linux
-            destination_file += "/";
-            #endif
-            #ifdef _WIN32
-            destination_file += "\";
-            #endif
-            }
-            destination_file += entry.path().filename();
 
-            try
+            if(!entry.is_directory())
             {
-                std::filesystem::copy_file(source_file, destination_file);
-                std::string line = "Successful copy: " + destination_file;
-                if (ui->logCheckBox->isChecked())
-                  log_file << line << std::endl;
-                file_count++;
-            }
-            catch (std::filesystem::filesystem_error &e)
-            {
-                std::string line = e.code().message() + e.what();
-                if (ui->logCheckBox->isCheckable())
-                    log_file << line << std::endl;
-                failed_count++;
-            }
+                if (ui->extensionFolderCheckbox->isChecked())
+                {
+                destination_file += file_ext.erase(0, 1);
+                #ifdef linux
+                destination_file += "/";
+                #endif
+                #ifdef _WIN32
+                destination_file += "\";
+                #endif
+                }
+                destination_file += entry.path().filename();
 
-        }
+                try
+                {
+                    std::filesystem::copy_file(source_file, destination_file);
+                    file_count++;
+
+                      std::string line = "Successful copy: " + destination_file;
+                    if (ui->logCheckBox->isChecked())
+                      log_file << line << std::endl;
+                }
+                catch (std::filesystem::filesystem_error &e)
+                {
+                    std::string line = e.code().message() + e.what();
+                    failed_count++;
+
+                    if (ui->logCheckBox->isCheckable())
+                        log_file << line << std::endl;
+                }
+
+            }
+    }
 
         std::string string_file_count = "Total Files Copied: " + std::to_string(file_count);
         ui->copiedFilesLabel->setText(QString::fromStdString(string_file_count));
@@ -277,12 +287,15 @@ void MainWindow::on_selectButton_clicked()
     {
         for(std::filesystem::directory_entry entry : std::filesystem::recursive_directory_iterator(root_path))
         {
-            if(std::find(selected_extensions.begin(), selected_extensions.end(), entry.path().extension()) != selected_extensions.end())
-                {
-                    total_files++;
-                }
-            std::string string_file_count = "Total File Count: " + std::to_string(total_files);
-            ui->totalFilesLabel->setText(QString::fromStdString(string_file_count));
+            if (!entry.is_directory())
+            {
+                if(std::find(selected_extensions.begin(), selected_extensions.end(), entry.path().extension()) != selected_extensions.end())
+                    {
+                        total_files++;
+                    }
+                std::string string_file_count = "Total File Count: " + std::to_string(total_files);
+                ui->totalFilesLabel->setText(QString::fromStdString(string_file_count));
+            }
         }
         ui->sortButton->setEnabled(true);
     }
