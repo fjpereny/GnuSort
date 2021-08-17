@@ -180,21 +180,21 @@
            <item>
             <widget class="QLabel" name="copiedFilesLabel">
              <property name="text">
-              <string>Copied Files:</string>
+              <string/>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="failedCountLabel">
              <property name="text">
-              <string>Copy Failures:</string>
+              <string/>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="remainingFilesLabel">
              <property name="text">
-              <string>Remaining Files: </string>
+              <string/>
              </property>
             </widget>
            </item>

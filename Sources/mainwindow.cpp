@@ -10,10 +10,15 @@
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include <cmath>
+
+
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
+
+
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -25,43 +30,126 @@ MainWindow::MainWindow(QWidget *parent) :
     total_files = 0;
 }
 
+
+
+
+
 MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+
+
+
 
 void MainWindow::on_actionExit_triggered()
 {
     this->close();
 }
 
+
+
+
+
+
 void MainWindow::on_scanButton_clicked()
 {
+    // GUI Cleanup
     ui->progressBar->setVisible(false);
     ui->extensionsListWidget->clear();
-    ui->copiedFilesLabel->setText("Copied Files: ");
-    ui->failedCountLabel->setText("Copy Failures: ");
-    ui->remainingFilesLabel->setText("Remaining Files: ");
+    ui->copiedFilesLabel->setText("");
+    ui->failedCountLabel->setText("");
+    ui->remainingFilesLabel->setText("");
+
+    total_files = 0;
 
     std::string root_path = ui->sourceLineEdit->text().toStdString();
 
-    int file_count = 0;
-    total_files = 0;
+
     std::vector<std::string> extensions;
     try
     {
+        int processEvent_counter = 0;
+        int processEvent_interval = 200;
+
+        uint file_size_B = 0;
+        uint file_size_KB = 0;
+        uint file_size_MB = 0;
+        uint file_size_GB = 0;
+
+        std::string string_file_size = "Total File Size: 0KB";
+        ui->fileSizeLabel->setText(QString::fromStdString(string_file_size));
+
+
         for(std::filesystem::directory_entry entry : std::filesystem::recursive_directory_iterator(root_path))
         {
-            if (!entry.is_directory())
+            processEvent_counter++;
+
+            if ((!entry.is_directory()) && entry.is_regular_file())
             {
-                file_count++;
+                file_size_B += entry.file_size();
+
+                if (file_size_B / (1024 * 1024 * 1024) > 0)
+                {
+                    file_size_GB +=  file_size_B / (1024 * 1024 * 1024);
+                    file_size_B = file_size_B % (1024 * 1024 * 1024);
+                }
+
+                if (file_size_B / (1024 * 1024) > 0)
+                {
+                    file_size_MB += file_size_B / (1024 * 1024);
+                    file_size_B = file_size_B % (1024 * 1024);
+                }
+
+                if (file_size_B / 1024 > 0)
+                {
+                    file_size_KB += file_size_B / 1024;
+                    file_size_B = file_size_B % 1024;
+                }
+
                 total_files++;
             }
-            std::string string_file_count = "Total File Count: " + std::to_string(file_count);
+
+
+            std::string string_file_count = "Total File Count: " + std::to_string(total_files);
             ui->totalFilesLabel->setText(QString::fromStdString(string_file_count));
+
+            double file_size = 0;
+            std::string size_unit;
+            if (file_size_GB >= 1)
+            {
+                size_unit = "GB";
+                file_size = file_size_GB + (file_size_MB / 1024.0) + (file_size_KB / (1024.0 * 1024.0)
+                                                                      + (file_size_B / (1024.0 * 1024.0 * 1024.0)));
+            }
+            else if (file_size_MB >= 1)
+            {
+                size_unit = "MB";
+                file_size = file_size_MB + (file_size_KB / 1024.0) + (file_size_B / (1024.0 * 1024.0));
+            }
+            else if (file_size_KB >= 1)
+            {
+                size_unit = "KB";
+                file_size = file_size_KB + (file_size_B / 1024.0);
+            }
+            else
+            {
+                size_unit = "B";
+                file_size = file_size_B;
+            }
+
+            QString q_file_size = QString::number(file_size, 'f', 2);
+            QString string_file_size = "Total File Size: " + q_file_size + QString::fromStdString(size_unit);
+
+            ui->fileSizeLabel->setText(string_file_size);
+
 
             std::string extenion = entry.path().extension();
             extensions.push_back(extenion);
+
+            if (processEvent_counter % processEvent_interval == 0)
+                QCoreApplication::processEvents();
         }
 
         std::unordered_set<std::string> unordered_set_extensions(extensions.begin(), extensions.end());
@@ -69,29 +157,45 @@ void MainWindow::on_scanButton_clicked()
         extensions.assign(unordered_set_extensions.begin(), unordered_set_extensions.end());
         std::sort(extensions.begin(), extensions.end());
 
+
+
         for(std::string s : extensions)
         {
-            QListWidgetItem *new_item = new QListWidgetItem();
+            QListWidgetItem *new_item = new QListWidgetItem(ui->extensionsListWidget);
             new_item->setText(QString::fromStdString(s));
             ui->extensionsListWidget->addItem(new_item);
         }
         ui->selectButton->setEnabled(true);
+
+
     }
     catch (std::filesystem::filesystem_error &e)
     {
         return;
     }
 
+
+
+
+
+
 }
 
 void MainWindow::on_sortButton_clicked()
 {
+    ui->selectButton->setEnabled(false);
+    ui->sortButton->setEnabled(false);
+
+
     ui->progressBar->show();
     ui->progressBar->setValue(0);
     ui->progressBar->setMinimum(0);
     ui->progressBar->setMaximum(total_files);
+
+
     ui->copiedFilesLabel->setText("Copied Files: ");
     ui->failedCountLabel->setText("Copy Failures: ");
+
 
 
     if (ui->extensionFolderCheckbox->isChecked())
