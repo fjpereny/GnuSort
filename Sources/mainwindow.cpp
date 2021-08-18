@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <iostream>
 #include <fstream>
 #include <ctime>
@@ -64,8 +65,17 @@ void MainWindow::on_scanButton_clicked()
 
     total_files = 0;
 
+
     std::string root_path = ui->sourceLineEdit->text().toStdString();
 
+
+    if (!std::filesystem::directory_entry(root_path).exists())
+    {
+        QMessageBox *msg_box = new QMessageBox(this);
+        msg_box->setText("The source directory does not exist.");
+        msg_box->show();
+        return;
+    }
 
     std::vector<std::string> extensions;
     try
@@ -196,15 +206,36 @@ void MainWindow::on_sortButton_clicked()
     ui->copiedFilesLabel->setText("Copied Files: ");
     ui->failedCountLabel->setText("Copy Failures: ");
 
+    std::string destination_path = ui->destinationLineEdit->text().toStdString();
+
+    #ifdef linux
+    if (destination_path.back() != '/')
+        destination_path += '/';
+    #endif
+
+    #ifdef _WIN32
+    if (destination_path.back() != '\\')
+        destination_path += '\\';
+    #endif
+
+    if (!std::filesystem::directory_entry(destination_path).exists())
+    {
+        std::filesystem::create_directory(destination_path);
+
+        // If folder doesn't exist after attempting to create it, exit the sort function.
+        if (!std::filesystem::directory_entry(destination_path).exists())
+        {
+            return;
+        }
+    }
 
 
     if (ui->extensionFolderCheckbox->isChecked())
     {
-        std::string path = ui->destinationLineEdit->text().toStdString();
         for (QListWidgetItem *extension : ui->extensionsListWidget->selectedItems())
         {
             std::string folder_name = extension->text().toStdString().erase(0, 1);
-            std::string full_folder_path = path + folder_name;
+            std::string full_folder_path = destination_path + folder_name;
             if (!std::filesystem::exists(full_folder_path))
             {
                 std::filesystem::create_directory(full_folder_path);
@@ -224,9 +255,9 @@ void MainWindow::on_sortButton_clicked()
     #endif
 
     #ifdef _WIN32
-        if(!std::filesystem::exists("logs\"))
+        if(!std::filesystem::exists("logs\\"))
         {
-            std::filesystem::create_directory("logs\");
+            std::filesystem::create_directory("logs\\");
         }
     #endif
 
@@ -239,7 +270,7 @@ void MainWindow::on_sortButton_clicked()
 #endif
 
 #ifdef _WIN32
-    log_file.open("logs\" + log_file_name);
+    log_file.open("logs\\" + log_file_name);
 #endif             
     }
 
@@ -259,7 +290,7 @@ void MainWindow::on_sortButton_clicked()
         if(std::find(selected_extensions.begin(), selected_extensions.end(), file_ext) != selected_extensions.end())
         {
             std::string source_file = entry.path();
-            std::string destination_file = ui->destinationLineEdit->text().toStdString();
+            std::string destination_file = destination_path;
 
             if(!entry.is_directory())
             {
@@ -270,7 +301,7 @@ void MainWindow::on_sortButton_clicked()
                 destination_file += "/";
                 #endif
                 #ifdef _WIN32
-                destination_file += "\";
+                destination_file += "\\";
                 #endif
                 }
                 destination_file += entry.path().filename();
@@ -332,7 +363,7 @@ void MainWindow::on_sourceButton_clicked()
 #endif
 
 #ifdef _WIN32
-    dialog.setDirectory("C:\");
+    dialog.setDirectory("C:\\");
 #endif
 
     QString path = dialog.getExistingDirectory();
@@ -343,7 +374,7 @@ void MainWindow::on_sourceButton_clicked()
 #endif
 
 #ifdef _WIN32
-    path.append("\");
+    path.append("\\");
 #endif
     ui->sourceLineEdit->setText(path);
 }
@@ -357,7 +388,7 @@ void MainWindow::on_destinationButton_clicked()
 #endif
 
 #ifdef _WIN32
-    dialog.setDirectory("C:\");
+    dialog.setDirectory("C:\\");
 #endif
 
     QString path = dialog.getExistingDirectory();
@@ -367,7 +398,7 @@ void MainWindow::on_destinationButton_clicked()
 #endif
 
 #ifdef _WIN32
-    path.append("\");
+    path.append("\\");
 #endif
     ui->destinationLineEdit->setText(path);
 }
