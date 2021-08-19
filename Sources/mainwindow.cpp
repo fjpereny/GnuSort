@@ -203,7 +203,7 @@ void MainWindow::on_scanButton_clicked()
         int processEvent_interval = 500;
 
         QString string_file_size = QString::fromStdString("Total File Size: 0KB");
-        ui->fileSizeLabel->setText(string_file_size);
+        ui->scanFileSizeLabel->setText(string_file_size);
 
 
 
@@ -219,9 +219,9 @@ void MainWindow::on_scanButton_clicked()
 
 
             QString string_file_count = "Total File Count: " + QString::number(total_files);
-            ui->totalFilesLabel->setText(string_file_count);
+            ui->scanTotalFilesLabel->setText(string_file_count);
 
-            ui->fileSizeLabel->setText(file_size.print_size());
+            ui->scanFileSizeLabel->setText(file_size.print_size());
 
             std::string extenion = entry.path().extension();
             extensions.push_back(extenion);
@@ -242,6 +242,8 @@ void MainWindow::on_scanButton_clicked()
             new_item->setText(QString::fromStdString(s));
             ui->extensionsListWidget->addItem(new_item);
         }
+
+        ui->totalExtensionsLabel->setText("Total Extensions: " + QString::number(extensions.size()));
 
         ui->selectButton->setEnabled(true);
     }
@@ -378,17 +380,30 @@ void MainWindow::on_sortButton_clicked()
         }
         #endif
 
-        std::time_t t = std::time(nullptr);
-        std::string cur_time = std::asctime(std::localtime(&t));
-        std::string log_file_name = cur_time + "log.txt";
 
-        #ifdef linux
-        log_file.open("logs/" + log_file_name);
-        #endif
 
-        #ifdef _WIN32
-            log_file.open("logs\\" + log_file_name);
-        #endif
+        if (ui->logCheckBox->isChecked())
+        {
+            std::time_t t = std::time(nullptr);
+            std::string cur_time = std::asctime(std::localtime(&t));
+            std::string log_file_name = cur_time + "log.txt";
+
+            std::string log_path = ui->logFolderLineEdit->text().toStdString();
+
+            #ifdef linux
+            if (*log_path.end() != '/')
+                log_path += '/';
+            #endif
+
+            #ifdef _WIN32
+            if (*log_path.end() != '\\')
+                log_path += '\\';
+            #endif
+
+            log_file.open(log_path + log_file_name);
+        }
+
+
     }
 
     std::string root_path = ui->sourceLineEdit->text().toStdString();
