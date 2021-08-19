@@ -135,6 +135,16 @@
           </widget>
          </item>
          <item>
+          <widget class="QCheckBox" name="keepOriginalsCheckbox">
+           <property name="text">
+            <string>Keep Original Files</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
           <layout class="QVBoxLayout" name="verticalLayout">
            <item>
             <spacer name="verticalSpacer_2">
@@ -158,14 +168,14 @@
               </size>
              </property>
              <property name="text">
-              <string>Total Files:</string>
+              <string/>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QLabel" name="fileSizeLabel">
              <property name="text">
-              <string>Total File Size: </string>
+              <string/>
              </property>
             </widget>
            </item>

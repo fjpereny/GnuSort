@@ -30,6 +30,8 @@ private slots:
 
     void on_actionAbout_GnuSort_triggered();
 
+    void clear_ui(bool clear_extensions);
+
 private:
     Ui::MainWindow *ui;
 
